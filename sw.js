@@ -1,22 +1,19 @@
-// ATR Padel Tour — Service Worker v5
-const CACHE_NAME = 'atr-padel-v21';
+// ATR Padel Tour — Service Worker v22
+const CACHE_NAME = 'atr-padel-v22';
+const BASE = '/atr-padel-tour';
 const ASSETS = [
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.jpg',
-  '/icon-512.jpg',
-  '/icon-192.png',
-  '/icon-512.png'
+  BASE + '/index.html',
+  BASE + '/manifest.json',
+  BASE + '/icon-192.png',
+  BASE + '/icon-512.png',
+  BASE + '/icon-192.jpg',
+  BASE + '/icon-512.jpg'
 ];
 
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(ASSETS.filter(a => {
-        // Don't fail if some icon variants don't exist
-        return true;
-      })))
-      .catch(() => {}) // ignore missing files
+      .then(cache => cache.addAll(ASSETS).catch(() => {}))
       .then(() => self.skipWaiting())
   );
 });
@@ -24,16 +21,13 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
-      ))
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-  // Always network-first for Firebase and external resources
   if (url.hostname.includes('firebase') ||
       url.hostname.includes('firestore') ||
       url.hostname.includes('googleapis') ||
@@ -42,7 +36,6 @@ self.addEventListener('fetch', e => {
     e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
     return;
   }
-  // Network-first for HTML so updates always come through
   if (e.request.destination === 'document') {
     e.respondWith(
       fetch(e.request)
@@ -55,7 +48,6 @@ self.addEventListener('fetch', e => {
     );
     return;
   }
-  // Cache-first for other assets
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
@@ -65,7 +57,7 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
         }
         return response;
-      }).catch(() => caches.match('/index.html'));
+      }).catch(() => caches.match(BASE + '/index.html'));
     })
   );
 });
