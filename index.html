@@ -77,7 +77,7 @@ function startRealtimeSync() {
     // Refresh whichever tab is active
     const active = document.querySelector(".section.active")?.id;
     if (active === "sec-ranking"   && window.renderRanking)   window.renderRanking();
-    if (active === "sec-fixture"   && window.renderFechas)    window.renderFechas();
+    if (active === "sec-fixture"   && window.renderFechas && !window._editingSet)    window.renderFechas();
     if (active === "sec-jugadores" && window.renderJugadores) window.renderJugadores();
     if (active === "sec-suplentes" && window.renderSuplentes) window.renderSuplentes();
     showSyncStatus("ok");
@@ -1036,6 +1036,35 @@ body:not(.is-admin) .admin-only { display:none !important; }
   0%   { opacity:0.8; }
   100% { opacity:0; }
 }
+
+/* ═══════════════════════════════════════════════
+   EDIT PLAYER MODAL
+   ═══════════════════════════════════════════════ */
+.edit-modal-overlay {
+  position:fixed; inset:0; z-index:600;
+  background:rgba(0,0,0,0.85);
+  display:flex; align-items:center; justify-content:center;
+  backdrop-filter:blur(6px);
+  padding:16px;
+}
+.edit-modal-overlay.hidden { display:none; }
+.edit-modal-box {
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:20px;
+  width:100%; max-width:380px;
+  padding:28px;
+  box-shadow:0 24px 80px rgba(0,0,0,0.7);
+  position:relative;
+}
+.edit-modal-box .modal-close {
+  position:absolute; top:14px; right:16px;
+}
+.edit-modal-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.4rem; letter-spacing:2px;
+  color:var(--accent); margin-bottom:20px;
+}
 </style>
 </head>
 <body>
@@ -1322,6 +1351,33 @@ function hideSplashNow() {
 </div>
 </div>
 
+<!-- EDIT PLAYER MODAL -->
+<div class="edit-modal-overlay hidden" id="edit-modal" onclick="closeEditModal(event)">
+  <div class="edit-modal-box">
+    <button class="modal-close" onclick="closeEditModal()">✕</button>
+    <div class="edit-modal-title" id="edit-modal-title">Editar</div>
+    <div id="alert-edit" class="alert"></div>
+
+    <!-- Photo -->
+    <div class="foto-upload-area" onclick="document.getElementById('edit-foto-input').click()" style="width:80px;height:80px;margin:0 auto 12px;">
+      <img id="edit-foto-preview" src="" style="display:none">
+      <span class="foto-placeholder" id="edit-foto-icon">📷</span>
+      <input type="file" id="edit-foto-input" accept="image/*" style="display:none" onchange="editPreviewFoto(this)">
+    </div>
+    <p class="foto-upload-hint">Tocá para cambiar foto</p>
+
+    <div class="form-group">
+      <label class="lbl">Nombre</label>
+      <input type="text" id="edit-nombre" placeholder="Nombre">
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-primary" style="flex:1" onclick="guardarEdicion()">✓ Guardar</button>
+      <button class="btn btn-ghost" onclick="closeEditModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- PLAYER MODAL -->
 <div class="modal-overlay hidden" id="player-modal" onclick="closePlayerModal(event)">
   <div class="player-modal" id="player-modal-box">
@@ -1570,10 +1626,7 @@ function renderJugadores() {
           : `<span>${j.initials||j.nombre.slice(0,2).toUpperCase()}</span>`}
       </div>
       <span class="jname" style="flex:1">${j.nombre}</span>
-      <label class="btn btn-ghost btn-sm admin-only" style="cursor:pointer;padding:5px 10px;" title="Cambiar foto">
-        📷
-        <input type="file" accept="image/*" style="display:none" onchange="cambiarFoto(event,${j.id})">
-      </label>
+      <button class="btn btn-ghost btn-sm admin-only" onclick="openEditModal('jugador',${j.id})" title="Editar" style="padding:5px 10px;">✎</button>
       <button class="btn btn-danger btn-sm admin-only" onclick="removeJugador(${j.id})">✕</button>
     </div>
   `).join('');
@@ -1824,7 +1877,17 @@ function renderFechas() {
     el.innerHTML = '<div class="empty-msg"><div class="eico">📅</div><p>No hay fechas. Creá la primera.</p></div>';
     return;
   }
+  // Preserve scroll position and open cards
+  const scrollY = window.scrollY;
+  const openCards = [...document.querySelectorAll('.fecha-card.open')].map(c => c.id);
   el.innerHTML = fechas.map(f => fechaCardHTML(f)).join('');
+  // Restore open cards
+  openCards.forEach(id => {
+    const card = document.getElementById(id);
+    if (card) card.classList.add('open');
+  });
+  // Restore scroll position
+  requestAnimationFrame(() => window.scrollTo(0, scrollY));
 }
 
 function fechaCardHTML(f) {
@@ -2005,7 +2068,11 @@ function updateSet(fid,pi,si,campo,val) {
   const f = fechas.find(f=>f.id===fid);
   if(!f) return;
   f.partidos[pi].sets[si][campo] = val;
-  save(); // saves to Firebase without re-rendering
+  window._editingSet = true; // flag: don't re-render while typing
+  save();
+  // Clear flag after 3 seconds of inactivity
+  clearTimeout(window._editingSetTimer);
+  window._editingSetTimer = setTimeout(() => { window._editingSet = false; }, 3000);
 }
 
 function addSet(fid,pi) {
@@ -2355,10 +2422,7 @@ function renderSuplentes() {
           : `<span>${s.initials||s.nombre.slice(0,2).toUpperCase()}</span>`}
       </div>
       <span class="jname" style="flex:1">${s.nombre}</span>
-      <label class="btn btn-ghost btn-sm admin-only" style="cursor:pointer;padding:5px 10px;" title="Cambiar foto">
-        📷
-        <input type="file" accept="image/*" style="display:none" onchange="cambiarFotoSup(event,${s.id})">
-      </label>
+      <button class="btn btn-ghost btn-sm admin-only" onclick="openEditModal('suplente',${s.id})" title="Editar" style="padding:5px 10px;">✎</button>
       <button class="btn btn-danger btn-sm admin-only" onclick="removeSuplente(${s.id})">✕</button>
     </div>
   `).join('');
@@ -2428,6 +2492,89 @@ function hasReemplazo(jid, p) {
 }
 
 
+
+
+// ── EDIT PLAYER / SUPLENTE ────────────────────────────────────
+let editTarget = null; // { type: 'jugador'|'suplente', id }
+let editFotoData = null;
+
+function openEditModal(type, id) {
+  const arr = type === 'jugador' ? jugadores : suplentes;
+  const obj = arr.find(x => x.id === id);
+  if (!obj) return;
+
+  editTarget = { type, id };
+  editFotoData = null;
+
+  document.getElementById('edit-modal-title').textContent =
+    (type === 'jugador' ? 'Editar Jugador' : 'Editar Suplente');
+  document.getElementById('edit-nombre').value = obj.nombre;
+
+  const prev = document.getElementById('edit-foto-preview');
+  const icon = document.getElementById('edit-foto-icon');
+  if (obj.foto) {
+    prev.src = obj.foto; prev.style.display = 'block'; icon.style.display = 'none';
+  } else {
+    prev.style.display = 'none'; icon.style.display = 'block';
+  }
+
+  document.getElementById('edit-modal').classList.remove('hidden');
+}
+
+function editPreviewFoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX = 200;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w>MAX){h=h*MAX/w;w=MAX;} } else { if (h>MAX){w=w*MAX/h;h=MAX;} }
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      editFotoData = canvas.toDataURL('image/jpeg', 0.75);
+      const prev = document.getElementById('edit-foto-preview');
+      prev.src = editFotoData; prev.style.display = 'block';
+      document.getElementById('edit-foto-icon').style.display = 'none';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function guardarEdicion() {
+  const nombre = document.getElementById('edit-nombre').value.trim();
+  if (!nombre) { showAlert('alert-edit','Ingresá un nombre','err'); return; }
+
+  const arr = editTarget.type === 'jugador' ? jugadores : suplentes;
+  const obj = arr.find(x => x.id === editTarget.id);
+  if (!obj) return;
+
+  // Check duplicate name (excluding self)
+  const otherArr = [...jugadores, ...suplentes].filter(x => x.id !== editTarget.id);
+  if (otherArr.find(x => x.nombre.toLowerCase() === nombre.toLowerCase())) {
+    showAlert('alert-edit','Ya existe ese nombre','err'); return;
+  }
+
+  obj.nombre = nombre;
+  obj.initials = nombre.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
+  if (editFotoData) obj.foto = editFotoData;
+
+  save();
+  closeEditModal();
+  if (editTarget.type === 'jugador') renderJugadores();
+  else renderSuplentes();
+  showAlert('alert-jug', '✓ Datos actualizados');
+}
+
+function closeEditModal(e) {
+  if (e && e.target !== document.getElementById('edit-modal')) return;
+  document.getElementById('edit-modal').classList.add('hidden');
+  editTarget = null; editFotoData = null;
+  document.getElementById('edit-foto-input').value = '';
+}
 
 // ── ADMIN AUTH ────────────────────────────────────────────────
 // Admin mode: access via ?admin in URL, then enter PIN
@@ -2907,6 +3054,10 @@ window.pinPress       = pinPress;
 window.pinDel         = pinDel;
 window.enterAsViewer  = enterAsViewer;
 window.closePinModal  = closePinModal;
+window.openEditModal  = openEditModal;
+window.guardarEdicion = guardarEdicion;
+window.closeEditModal = closeEditModal;
+window.editPreviewFoto = editPreviewFoto;
 
 // ── INIT ──────────────────────────────────────────────────────
 // Initial render with localStorage data (Firebase will update on load)
