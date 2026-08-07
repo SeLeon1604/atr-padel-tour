@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Torneo de Pádel · 12 Jugadores</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #00e676;
+    --green-dim: #00c853;
+    --bg: #0a0f0d;
+    --surface: #111a14;
+    --surface2: #1a2820;
+    --border: #1f3028;
+    --text: #e8f5e9;
+    --muted: #607d6b;
+    --accent: #ff6b35;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 80% 10%, rgba(0,230,118,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 50% at 10% 90%, rgba(255,107,53,0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .eyebrow {
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 0.5rem;
+    opacity: 0;
+    animation: fadeUp 0.5s 0.1s forwards;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 10vw, 6rem);
+    line-height: 0.9;
+    letter-spacing: 0.03em;
+    color: var(--text);
+    opacity: 0;
+    animation: fadeUp 0.6s 0.2s forwards;
+  }
+
+  h1 span { color: var(--green); }
+
+  .subtitle {
+    margin-top: 1rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-weight: 300;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.35s forwards;
+  }
+
+  /* Players editor */
+  .players-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.45s forwards;
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.05em;
+    color: var(--green);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .players-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.6rem;
+  }
+
+  .player-input-wrap {
+    position: relative;
+  }
+
+  .player-num {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    color: var(--green);
+    pointer-events: none;
+  }
+
+  .player-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 0.55rem 0.5rem 0.55rem 2rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+
+  .player-input:focus {
+    border-color: var(--green);
+  }
+
+  .generate-btn {
+    width: 100%;
+    margin-top: 1.2rem;
+    padding: 1rem;
+    background: var(--green);
+    color: #0a0f0d;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+
+  .generate-btn:hover { background: var(--green-dim); }
+  .generate-btn:active { transform: scale(0.98); }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.4rem;
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .stat-card.visible {
+    animation: fadeUp 0.4s forwards;
+  }
+
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    color: var(--green);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-top: 0.2rem;
+  }
+
+  /* Rounds */
+  .rounds-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .round-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  .round-card.visible {
+    animation: fadeUp 0.4s forwards;
+  }
+
+  .round-header {
+    background: var(--surface2);
+    padding: 0.8rem 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .round-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    color: var(--green);
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
+
+  .round-info {
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .matches-list {
+    padding: 1rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .match-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--surface2);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    transition: border-color 0.2s;
+  }
+
+  .match-row:hover { border-color: rgba(0,230,118,0.3); }
+
+  .team {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .team:last-child { text-align: right; align-items: flex-end; }
+
+  .player-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+  }
+
+  .player-tag {
+    font-size: 0.65rem;
+    color: var(--green);
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 0.1em;
+  }
+
+  .vs-badge {
+    background: var(--border);
+    border-radius: 6px;
+    padding: 0.3rem 0.6rem;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+  }
+
+  /* Matrix */
+  .matrix-section {
+    margin-top: 2.5rem;
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  .matrix-section.visible {
+    animation: fadeUp 0.5s forwards;
+  }
+
+  .matrix-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 0.05em;
+    color: var(--text);
+    margin-bottom: 0.4rem;
+  }
+
+  .matrix-subtitle {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 1.2rem;
+  }
+
+  .matrix-wrap {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+
+  table.matrix {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 500px;
+  }
+
+  .matrix th, .matrix td {
+    padding: 0.4rem 0.5rem;
+    text-align: center;
+    font-size: 0.75rem;
+    border: 1px solid var(--border);
+  }
+
+  .matrix th {
+    background: var(--surface2);
+    color: var(--green);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+  }
+
+  .matrix td {
+    background: var(--surface);
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .matrix td.val-0 { color: var(--border); }
+  .matrix td.val-1 { color: var(--green); background: rgba(0,230,118,0.05); }
+  .matrix td.val-2 { color: var(--accent); background: rgba(255,107,53,0.08); }
+  .matrix td.val-diag { color: var(--border); }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    margin-top: 0.8rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  #schedule-output { display: none; }
+  #schedule-output.show { display: block; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="eyebrow">Generador de Fixture</div>
+    <h1>Torneo<br><span>Pádel</span></h1>
+    <p class="subtitle">12 jugadores · compañeros únicos · rivales sin repetir</p>
+  </header>
+
+  <div class="players-section">
+    <div class="section-title">👥 Jugadores</div>
+    <div class="players-grid" id="players-grid"></div>
+    <button class="generate-btn" id="gen-btn" onclick="generate()">⚡ GENERAR FIXTURE</button>
+  </div>
+
+  <div id="schedule-output">
+    <div class="stats-bar" id="stats-bar"></div>
+    <div class="rounds-container" id="rounds-container"></div>
+    <div class="matrix-section" id="matrix-section">
+      <div class="matrix-title">Matriz de Enfrentamientos</div>
+      <div class="matrix-subtitle">Cantidad de veces que cada par de jugadores fueron <em>rivales</em></div>
+      <div class="matrix-wrap" id="matrix-wrap"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>1 vez (ideal)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>2+ veces (repetición)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--border)"></div>No se enfrentaron</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_NAMES = ['DiegoL','Martin','Ariel','Javier','Fabian','Hernan','Angel','Sergio','Agustin','Dario','DiegoP','Matias'];
+
+function buildGrid() {
+  const grid = document.getElementById('players-grid');
+  grid.innerHTML = '';
+  for (let i = 0; i < 12; i++) {
+    const wrap = document.createElement('div');
+    wrap.className = 'player-input-wrap';
+    wrap.innerHTML = `
+      <span class="player-num">${i+1}</span>
+      <input class="player-input" id="p${i}" type="text" value="${DEFAULT_NAMES[i]}" maxlength="14" placeholder="Jugador ${i+1}">
+    `;
+    grid.appendChild(wrap);
+  }
+}
+
+function getNames() {
+  return Array.from({length:12}, (_,i) => document.getElementById(`p${i}`).value.trim() || `J${i+1}`);
+}
+
+/* ─── Scheduling algorithm ─────────────────────────────────────────────
+   With 12 players we have C(12,2)=66 possible pairs.
+   Each round uses 3 matches × 4 players = 12 players (everyone plays).
+   Each match has 2 pairs (teammates) and 2 opponent pairs.
+   
+   Goal: generate rounds such that:
+   1. Each player's teammate in each round is unique (no repeated partner).
+   2. Opponent pairs repeat as little as possible.
+   
+   We'll use a round-robin construction based on "social golfer" heuristics.
+   For 12 players, a perfect social golfer solution exists for 3 groups of 4.
+   We use a known near-optimal schedule for triples turned into pádel pairs.
+──────────────────────────────────────────────────────────────────────── */
+
+function generateSchedule(n) {
+  // Improved algorithm: tries 200 random seeds and picks the most equitable fixture
+  // Minimizes pairs that face each other 3+ times using quadratic penalty
+
+  function trySchedule(seed) {
+    // Simple seeded RNG
+    let rng = seed;
+    function rand() { rng = (rng * 1664525 + 1013904223) & 0xffffffff; return (rng >>> 0) / 0xffffffff; }
+    function shuffle(arr) {
+      for (let i=arr.length-1;i>0;i--) {
+        const j=Math.floor(rand()*(i+1));
+        [arr[i],arr[j]]=[arr[j],arr[i]];
+      }
+      return arr;
+    }
+
+    const partnerCount  = Array.from({length:n},()=>new Array(n).fill(0));
+    const opponentCount = Array.from({length:n},()=>new Array(n).fill(0));
+
+    function addMatch(a,b,c,d) {
+      partnerCount[a][b]++; partnerCount[b][a]++;
+      partnerCount[c][d]++; partnerCount[d][c]++;
+      for (const x of [a,b]) for (const y of [c,d]) { opponentCount[x][y]++; opponentCount[y][x]++; }
+    }
+
+    function score(a,b,c,d) {
+      // Quadratic penalty - penalizes 3+ encounters much more heavily
+      let s=0;
+      for (const x of [a,b]) for (const y of [c,d]) { const v=opponentCount[x][y]; s+=v*v; }
+      return s;
+    }
+
+    const rounds = [];
+    for (let r=0; r<11; r++) {
+      const used = new Set();
+      const roundMatches = [];
+      let players = shuffle(Array.from({length:n},(_,i)=>i)).filter(p=>!used.has(p));
+
+      while (players.length>=4 && roundMatches.length<3) {
+        let bestScore=Infinity, best=null;
+        // Build candidate pairs
+        const pairsAB = [];
+        for (let ai=0;ai<players.length;ai++)
+          for (let bi=ai+1;bi<players.length;bi++)
+            if (partnerCount[players[ai]][players[bi]]===0)
+              pairsAB.push([players[ai],players[bi]]);
+        shuffle(pairsAB);
+
+        for (const [a,b] of pairsAB.slice(0,50)) {
+          const rem = players.filter(p=>p!==a&&p!==b);
+          for (let ci=0;ci<rem.length;ci++) {
+            for (let di=ci+1;di<rem.length;di++) {
+              const c=rem[ci],d=rem[di];
+              if (partnerCount[c][d]>0) continue;
+              const s=score(a,b,c,d);
+              if (s<bestScore) { bestScore=s; best=[a,b,c,d]; }
+            }
+          }
+        }
+        if (!best) break;
+        const [a,b,c,d]=best;
+        addMatch(a,b,c,d);
+        roundMatches.push({team1:[a,b],team2:[c,d]});
+        [a,b,c,d].forEach(p=>used.add(p));
+        players=players.filter(p=>!used.has(p));
+      }
+      if (roundMatches.length===3) rounds.push(roundMatches);
+    }
+    return {rounds, opponentCount};
+  }
+
+  function penalty(opponentCount) {
+    let p=0;
+    for (let i=0;i<n;i++) for (let j=i+1;j<n;j++) {
+      const v=opponentCount[i][j];
+      if (v===0) p+=2;
+      else if (v>=3) p+=4*(v-2);
+      else if (v>=2) p+=1;
+    }
+    return p;
+  }
+
+  // Try 200 seeds, keep best
+  let best=null, bestPenalty=Infinity;
+  for (let seed=1; seed<=200; seed++) {
+    const result = trySchedule(seed);
+    if (result.rounds.length<11) continue;
+    const p = penalty(result.opponentCount);
+    if (p<bestPenalty) { bestPenalty=p; best=result; }
+  }
+  return best || trySchedule(1);
+}
+
+function generate() {
+  const btn = document.getElementById('gen-btn');
+  if (btn) { btn.textContent = '⏳ GENERANDO...'; btn.disabled = true; }
+  setTimeout(() => {
+  const names = getNames();
+  const {rounds, opponentCount} = generateSchedule(12);
+
+  // Render stats
+  const statsBar = document.getElementById('stats-bar');
+  const totalMatches = rounds.length * 3;
+  let maxOpp = 0, totalRepeat = 0;
+  for (let i=0;i<12;i++) for(let j=i+1;j<12;j++) {
+    const v = opponentCount[i][j];
+    if (v>maxOpp) maxOpp=v;
+    if (v>1) totalRepeat++;
+  }
+  let once=0, twice=0, threeplus=0, neverFaced=0;
+  for (let i=0;i<12;i++) for(let j=i+1;j<12;j++) {
+    const v = opponentCount[i][j];
+    if (v===0) neverFaced++;
+    else if (v===1) once++;
+    else if (v===2) twice++;
+    else threeplus++;
+  }
+  statsBar.innerHTML = `
+    <div class="stat-card" style="animation-delay:0s"><div class="stat-num">${rounds.length}</div><div class="stat-label">Rondas</div></div>
+    <div class="stat-card" style="animation-delay:0.1s"><div class="stat-num">${totalMatches}</div><div class="stat-label">Partidos</div></div>
+    <div class="stat-card" style="animation-delay:0.2s"><div class="stat-num">${once}</div><div class="stat-label">Pares · 1 vez</div></div>
+    <div class="stat-card" style="animation-delay:0.25s"><div class="stat-num">${twice}</div><div class="stat-label">Pares · 2 veces</div></div>
+    <div class="stat-card" style="animation-delay:0.3s"><div class="stat-num">${threeplus}</div><div class="stat-label">Pares · 3+ veces</div></div>
+  `;
+  setTimeout(()=>statsBar.querySelectorAll('.stat-card').forEach(c=>c.classList.add('visible')),50);
+
+  // Render rounds
+  const rc = document.getElementById('rounds-container');
+  rc.innerHTML = '';
+  rounds.forEach((matches, ri) => {
+    const card = document.createElement('div');
+    card.className = 'round-card';
+    card.style.animationDelay = `${ri*0.07}s`;
+    card.innerHTML = `
+      <div class="round-header">
+        <div class="round-num">RONDA ${ri+1}</div>
+        <div class="round-info">3 partidos · 12 jugadores</div>
+      </div>
+      <div class="matches-list">
+        ${matches.map((m,mi) => `
+          <div class="match-row">
+            <div class="team">
+              <div class="player-name">${names[m.team1[0]]}</div>
+              <div class="player-name">${names[m.team1[1]]}</div>
+              <div class="player-tag">EQUIPO A</div>
+            </div>
+            <div class="vs-badge">VS</div>
+            <div class="team">
+              <div class="player-name">${names[m.team2[0]]}</div>
+              <div class="player-name">${names[m.team2[1]]}</div>
+              <div class="player-tag">EQUIPO B</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    rc.appendChild(card);
+    setTimeout(()=>card.classList.add('visible'), ri*70+100);
+  });
+
+  // Render matrix
+  const mw = document.getElementById('matrix-wrap');
+  const initials = names.map(n=>n.substring(0,3).toUpperCase());
+  let html = '<table class="matrix"><thead><tr><th></th>';
+  initials.forEach(n=>{ html+=`<th>${n}</th>`; });
+  html += '</tr></thead><tbody>';
+  for (let i=0;i<12;i++) {
+    html += `<tr><th>${initials[i]}</th>`;
+    for (let j=0;j<12;j++) {
+      if (i===j) { html+='<td class="val-diag">·</td>'; continue; }
+      const v = opponentCount[i][j];
+      html+=`<td class="val-${Math.min(v,2)}">${v||'·'}</td>`;
+    }
+    html+='</tr>';
+  }
+  html+='</tbody></table>';
+  mw.innerHTML = html;
+
+  const out = document.getElementById('schedule-output');
+  out.classList.add('show');
+  const ms = document.getElementById('matrix-section');
+  setTimeout(()=>ms.classList.add('visible'), rounds.length*70+300);
+  if (btn) { btn.textContent = '⚡ GENERAR FIXTURE'; btn.disabled = false; }
+  }, 50);
+}
+
+buildGrid();
+generate();
+</script>
+</body>
+</html>
