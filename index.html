@@ -1120,6 +1120,12 @@ function avatarHTML(j,size,pos){
 
 function renderRanking() {
   const fechasComp=fechas.filter(f=>f.partidos.every(p=>p.completado)&&f.partidos.length===3).length;
+  const OLD_SCORING=['camp_apertura_2026'];
+  const isOld=OLD_SCORING.includes(window._activeCampId);
+  const subEl=document.getElementById('ranking-sub');
+  if(subEl) subEl.textContent=isOld
+    ?'Ranking · 3pts partido ganado · 2pts por set ganado'
+    :'Ranking · 1pt partido ganado · 2pts por set · games/10';
   document.getElementById('stats-row').innerHTML=`
     <div class="stat-card"><div class="stat-val">${jugadores.length}</div><div class="stat-lbl">Jugadores</div></div>
     <div class="stat-card"><div class="stat-val">${fechas.length}</div><div class="stat-lbl">Fechas</div></div>
@@ -1149,7 +1155,7 @@ function renderRanking() {
       ${tableHTML(statsSup,false,s=>'openSupModalById(\''+s.id+'\',\''+encodeURIComponent(s.nombre)+'\')')}
     </div>`:'';
   el.innerHTML=tableHTML(stats,true,s=>'openPlayerModal('+s.id+')')+
-    `<p style="margin-top:10px;font-size:.66rem;color:var(--text3);text-align:right;">👆 Tocá un jugador · '+(OLD_SCORING.includes(window._activeCampId)?'PG+3pts · SG+2pts':'PG+1pt · SG+2pts · Games/10')+'</p>`+supSection;
+    `<p style="margin-top:10px;font-size:.66rem;color:var(--text3);text-align:right;">👆 Tocá un jugador · '+(isOld?'PG+3pts · SG+2pts':'PG+1pt · SG+2pts · Games/10')+'</p>`+supSection;
 }
 
 // ── COMPACT FIXTURE ───────────────────────────────────────────
