@@ -1,5 +1,5 @@
 // ATR Padel Tour — Service Worker v22
-const CACHE_NAME = 'atr-padel-v31';
+const CACHE_NAME = 'atr-padel-v32';
 const BASE = '/atr-padel-tour';
 const ASSETS = [
   BASE + '/index.html',
@@ -24,6 +24,10 @@ self.addEventListener('activate', e => {
       .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+self.addEventListener('message', e => {
+  if(e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', e => {

@@ -332,6 +332,23 @@ body:not(.is-admin) .admin-only{display:none !important;}
   .fecha-header{padding:10px 12px;gap:8px;}
   .fecha-body{padding:10px 12px 14px;}
 }
+
+.update-banner {
+  position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+  z-index:9000; background:linear-gradient(135deg,var(--purple),#6600cc);
+  color:#fff; padding:12px 20px; border-radius:100px;
+  display:flex; align-items:center; gap:12px;
+  box-shadow:0 8px 30px rgba(155,77,255,.5);
+  font-size:.85rem; font-weight:600;
+  animation:slideUp .4s cubic-bezier(.34,1.56,.64,1);
+  white-space:nowrap;
+}
+@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(30px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.update-banner button {
+  background:var(--lime); color:#0a0a0a; border:none;
+  padding:6px 14px; border-radius:100px; font-weight:800;
+  font-size:.8rem; cursor:pointer; white-space:nowrap;
+}
 </style>
 </head>
 <body>
@@ -1437,14 +1454,44 @@ window.renderCampSelectorExt=renderCampSelector;
 checkAdminURL();
 </script>
 
+
 <script>
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('/atr-padel-tour/sw.js')
-      .then(r=>console.log('SW registered'))
-      .catch(e=>console.log('SW error',e));
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/atr-padel-tour/sw.js').then(reg => {
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if(newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          // New version available
+          document.getElementById('update-banner').style.display = 'flex';
+        }
+      });
+    });
+  });
+  
+  // Reload when new SW takes control
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if(!refreshing) { refreshing = true; window.location.reload(); }
+  });
+}
+
+function actualizarApp() {
+  navigator.serviceWorker.getRegistration().then(reg => {
+    if(reg && reg.waiting) {
+      reg.waiting.postMessage({type:'SKIP_WAITING'});
+    } else {
+      window.location.reload(true);
+    }
   });
 }
 </script>
+
+
+<div class="update-banner" id="update-banner" style="display:none;">
+  🆕 Nueva versión disponible
+  <button onclick="actualizarApp()">Actualizar</button>
+  <button onclick="document.getElementById('update-banner').style.display='none'" style="background:transparent;color:rgba(255,255,255,.6);font-size:1rem;padding:4px 8px;">✕</button>
+</div>
 </body>
 </html>
