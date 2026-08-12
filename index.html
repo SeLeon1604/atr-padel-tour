@@ -1062,7 +1062,10 @@ function quitarReemplazo(fid,pi,slot){const f=fechas.find(f=>f.id===fid);if(!f)r
 const ATTRS=['Saque','Derecha','Revés','Volea','Bandeja','Smash','Potencia','Velocidad','Técnica','Consistencia','Red','Fondo'];
 
 function calcPts(pg, sg, gg) {
-  // 1 pt partido ganado + 2 pts por set ganado + games/10
+  const OLD_SCORING = ['camp_apertura_2026'];
+  if (OLD_SCORING.includes(window._activeCampId)) {
+    return pg * 3 + sg * 2;
+  }
   return pg * 1 + sg * 2 + Math.round(gg / 10 * 10) / 10;
 }
 
