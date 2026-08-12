@@ -343,6 +343,7 @@ body:not(.is-admin) .admin-only{display:none !important;}
   <div class="splash-atr">ATR</div>
   <div class="splash-line"></div>
   <div class="splash-sub">Padel Tour</div>
+  <div style="position:relative;z-index:2;font-size:.58rem;color:rgba(155,77,255,.5);letter-spacing:2px;margin-top:8px;">v30</div>
   <div class="splash-dots"><div class="splash-dot"></div><div class="splash-dot"></div><div class="splash-dot"></div></div>
 </div>
 <script>
@@ -388,7 +389,7 @@ body:not(.is-admin) .admin-only{display:none !important;}
       <button id="btn-instalar" onclick="instalarApp()">↓ Instalar</button>
       <button class="btn-screenshot" id="btn-captura" onclick="capturaActiva()">📸</button>
       <button class="admin-lock-btn" id="admin-lock-btn" onclick="toggleAdminLock()">🔒</button>
-      <span id="sync-indicator" class="sync-dot">● Conectando...</span>
+      <span style="font-size:.58rem;color:var(--text3);letter-spacing:1px;">v30</span><span id="sync-indicator" class="sync-dot">● Conectando...</span>
     </div>
   </div>
   <div class="header-nav">
@@ -401,7 +402,7 @@ body:not(.is-admin) .admin-only{display:none !important;}
 
 <div class="section active" id="sec-ranking"><div class="container">
   <div class="page-title">Tabla de Posiciones</div>
-  <div class="page-sub">Ranking individual · 1 pt partido ganado · 2 pts por set ganado · games/10</div>
+  <div class="page-sub" id="ranking-sub">Ranking individual · 1 pt partido ganado · 2 pts por set ganado · games/10</div>
   <div class="stats-row" id="stats-row"></div>
   <div class="card"><div class="ranking-wrap" id="ranking-body"></div></div>
 </div></div>
