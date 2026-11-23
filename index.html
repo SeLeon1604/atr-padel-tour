@@ -349,6 +349,22 @@ body:not(.is-admin) .admin-only{display:none !important;}
   padding:6px 14px; border-radius:100px; font-weight:800;
   font-size:.8rem; cursor:pointer; white-space:nowrap;
 }
+
+.team-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+.team-card h3{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:1.5rem;margin:0 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.team-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border2);font-size:.88rem;}
+.team-row .grow{flex:1;}
+.team-mini{background:var(--surface2);color:var(--text);border:1px solid var(--border2);border-radius:8px;padding:3px 9px;font-size:.74rem;cursor:pointer;font-weight:700;}
+.team-banner{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin-bottom:14px;}
+.team-box{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:14px;text-align:center;}
+.team-box.lead{border-color:var(--lime);box-shadow:0 0 18px rgba(184,255,0,.18);}
+.team-box .tn{font-weight:800;font-size:.95rem;}
+.team-box .tp{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;color:var(--lime);line-height:1;}
+.tb-cancha{background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:10px;margin-bottom:10px;}
+.tb-row{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;}
+.tb-row select{width:100%;margin-bottom:4px;}
+.tb-warn{color:var(--gold);font-size:.74rem;margin-top:4px;}
+.fecha-teambar{display:flex;justify-content:space-between;gap:10px;background:var(--surface2);border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:.82rem;font-weight:700;}
 </style>
 </head>
 <body>
@@ -360,7 +376,7 @@ body:not(.is-admin) .admin-only{display:none !important;}
   <div class="splash-atr">ATR</div>
   <div class="splash-line"></div>
   <div class="splash-sub">Padel Tour</div>
-  <div style="position:relative;z-index:2;font-size:.58rem;color:rgba(155,77,255,.5);letter-spacing:2px;margin-top:8px;">v30</div>
+  <div style="position:relative;z-index:2;font-size:.58rem;color:rgba(155,77,255,.5);letter-spacing:2px;margin-top:8px;">v33</div>
   <div class="splash-dots"><div class="splash-dot"></div><div class="splash-dot"></div><div class="splash-dot"></div></div>
 </div>
 <script>
@@ -383,7 +399,7 @@ body:not(.is-admin) .admin-only{display:none !important;}
     <div id="alert-newcamp" class="alert"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
       <div class="form-group" style="margin:0"><label class="lbl">Temporada</label>
-        <select id="nc-temporada"><option value="Apertura">Apertura</option><option value="Clausura">Clausura</option></select></div>
+        <select id="nc-temporada"><option value="Apertura">Apertura</option><option value="Clausura">Clausura</option><option value="Relampago">⚡ Relámpago (equipos)</option></select></div>
       <div class="form-group" style="margin:0"><label class="lbl">Año</label><input type="number" id="nc-anio" value="2025" min="2020" max="2099"></div>
     </div>
     <div style="display:flex;gap:8px;">
@@ -406,7 +422,7 @@ body:not(.is-admin) .admin-only{display:none !important;}
       <button id="btn-instalar" onclick="instalarApp()">↓ Instalar</button>
       <button class="btn-screenshot" id="btn-captura" onclick="capturaActiva()">📸</button>
       <button class="admin-lock-btn" id="admin-lock-btn" onclick="toggleAdminLock()">🔒</button>
-      <span style="font-size:.58rem;color:var(--text3);letter-spacing:1px;">v30</span><span id="sync-indicator" class="sync-dot">● Conectando...</span>
+      <span style="font-size:.58rem;color:var(--text3);letter-spacing:1px;">v33</span><span id="sync-indicator" class="sync-dot">● Conectando...</span>
     </div>
   </div>
   <div class="header-nav">
@@ -414,12 +430,14 @@ body:not(.is-admin) .admin-only{display:none !important;}
     <button class="tab-btn" onclick="goTab('fixture',this)">Fixture</button>
     <button class="tab-btn" onclick="goTab('jugadores',this)">Jugadores</button>
     <button class="tab-btn" onclick="goTab('suplentes',this)">Suplentes</button>
+    <button class="tab-btn" id="tab-equipos" style="display:none" onclick="goTab('equipos',this)">⚡ Equipos</button>
   </div>
 </header>
 
 <div class="section active" id="sec-ranking"><div class="container">
   <div class="page-title">Tabla de Posiciones</div>
   <div class="page-sub" id="ranking-sub">Ranking individual · 1 pt partido ganado · 2 pts por set ganado · games/10</div>
+  <div id="team-ranking" style="display:none"></div>
   <div class="stats-row" id="stats-row"></div>
   <div class="card"><div class="ranking-wrap" id="ranking-body"></div></div>
 </div></div>
@@ -443,11 +461,12 @@ body:not(.is-admin) .admin-only{display:none !important;}
       <div class="form-group" style="margin:0"><label class="lbl">Fecha</label><input type="text" id="nf-fecha" placeholder="dd/mm/aaaa"></div>
     </div>
     <hr class="divider">
-    <p style="font-size:.78rem;color:var(--text2);margin-bottom:14px;">Asigná 4 jugadores por partido (1°-2° → Eq.A · 3°-4° → Eq.B)</p>
+    <div id="std-builder"><p style="font-size:.78rem;color:var(--text2);margin-bottom:14px;">Asigná 4 jugadores por partido (1°-2° → Eq.A · 3°-4° → Eq.B)</p>
     <div class="builder-section"><div class="builder-section-title"><span class="dot-1">1</span> Partido 1</div><div class="pool-grid" id="pool-p1"></div></div>
     <div class="builder-section"><div class="builder-section-title"><span class="dot-2">2</span> Partido 2</div><div class="pool-grid" id="pool-p2"></div></div>
     <div class="builder-section"><div class="builder-section-title"><span class="dot-3">3</span> Partido 3</div><div class="pool-grid" id="pool-p3"></div></div>
-    <div class="matchup-preview" id="matchup-preview"></div>
+    <div class="matchup-preview" id="matchup-preview"></div></div>
+    <div id="team-builder" style="display:none"></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-primary" onclick="guardarFecha()">✓ Guardar</button>
       <button class="btn btn-ghost" onclick="cancelarFecha()">Cancelar</button>
@@ -476,6 +495,12 @@ body:not(.is-admin) .admin-only{display:none !important;}
     </div>
     <div class="card"><div class="card-title">Lista de Jugadores</div><div id="jug-list"></div></div>
   </div>
+</div></div>
+
+<div class="section" id="sec-equipos"><div class="container">
+  <div class="page-title">Equipos</div>
+  <div class="page-sub">Desafío de Capitanes · 2 equipos de 6 · máximo 6 por equipo</div>
+  <div id="equipos-body"></div>
 </div></div>
 
 <div class="section" id="sec-suplentes"><div class="container">
@@ -632,6 +657,7 @@ window.__cloudSave = async function() {
 window.__cloudSaveIndex = cloudSaveIndex;
 window.__cloudLoadIndex = cloudLoadIndex;
 window.__cloudLoadCamp  = cloudLoadCamp;
+window.__cloudGetCamp = async function(id){ try{ const s=await getDoc(doc(db,"tournaments",id)); return s.exists()?s.data():null; }catch(e){ return null; } };
 window.__startSync      = startRealtimeSync;
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -653,11 +679,14 @@ window.addEventListener("DOMContentLoaded", async () => {
 
 <script>
 // ── STATE ─────────────────────────────────────────────────────
-let jugadores = [], fechas = [], suplentes = [];
+let jugadores = [], fechas = [], suplentes = [], equipos = null;
+window._activeCampTipo = null;
 window._activeCampId = null;
 window._campeonatos  = [];
-window._getData = () => ({ jugadores, fechas, suplentes });
-window._setData = (d) => { jugadores=d.jugadores||[]; fechas=d.fechas||[]; suplentes=d.suplentes||[]; };
+window._getData = () => { const o={ jugadores, fechas, suplentes }; if(window._activeCampTipo==='equipos'){ o.tipo='equipos'; o.equipos=equipos||defaultEquipos(); } return o; };
+window._setData = (d) => { jugadores=d.jugadores||[]; fechas=d.fechas||[]; suplentes=d.suplentes||[]; equipos=d.equipos||null; if(d.tipo) window._activeCampTipo=d.tipo; };
+function isTeam(){ return window._activeCampTipo==='equipos'; }
+function defaultEquipos(){ return [{nombre:'Equipo A',capitan:null,ids:[]},{nombre:'Equipo B',capitan:null,ids:[]}]; }
 
 function save() {
   if (window.__cloudSave) window.__cloudSave();
@@ -679,7 +708,7 @@ function renderCampSelector() {
   if(!camps.length) { el.innerHTML='<div class="empty-msg"><div class="eico">🏆</div><p>No hay campeonatos. Creá el primero.</p></div>'; return; }
   el.innerHTML=camps.slice().reverse().map(c=>{
     const isActive=c.id===window._activeCampId;
-    const icon=c.nombre.includes('Apertura')?'🌅':'🌆';
+    const icon=c.tipo==='equipos'?'⚡':(c.nombre.includes('Apertura')?'🌅':'🌆');
     return `<div class="hist-card ${isActive?'activo':''}" onclick="openCampeonato('${c.id}')">
       <div style="font-size:1.6rem;margin-bottom:6px;">${icon}</div>
       <div class="hist-camp-name">${c.nombre}</div>
@@ -703,23 +732,36 @@ window.crearCampeonato = async function() {
   const temp=document.getElementById('nc-temporada').value;
   const anio=document.getElementById('nc-anio').value;
   if(!anio) { showAlert('alert-newcamp','Ingresá el año','err'); return; }
-  const nombre=temp+' '+anio;
+  const esRel=temp==='Relampago';
+  const nombre=esRel?'Relámpago '+anio:temp+' '+anio;
   const id='camp_'+temp.toLowerCase()+'_'+anio;
   const camps=window._campeonatos||[];
   if(camps.find(c=>c.id===id)) { showAlert('alert-newcamp','Ya existe ese campeonato','err'); return; }
-  camps.push({id,nombre,fechas:0,jugadores:0,creado:new Date().toISOString()});
+  const entry={id,nombre,fechas:0,jugadores:0,creado:new Date().toISOString()};
+  if(esRel) entry.tipo='equipos';
+  camps.push(entry);
   window._campeonatos=camps;
   if(window.__cloudSaveIndex) await window.__cloudSaveIndex(camps);
   hideNewCampForm();
+  if(esRel){
+    let src=null;
+    if(window.__cloudGetCamp) src=await window.__cloudGetCamp('camp_clausura_'+anio);
+    await openCampeonato(id);
+    if(src){ jugadores=JSON.parse(JSON.stringify(src.jugadores||[])); suplentes=JSON.parse(JSON.stringify(src.suplentes||[])); }
+    equipos=defaultEquipos();
+    save(); updateCampIndex(); renderAll();
+    return;
+  }
   openCampeonato(id);
 };
 
 window.openCampeonato = async function(campId) {
   window._activeCampId=campId;
   sessionStorage.setItem('atr_last_camp',campId);
-  jugadores=[]; fechas=[]; suplentes=[];
+  jugadores=[]; fechas=[]; suplentes=[]; equipos=null; window._activeCampTipo=null;
   if(window.__cloudLoadCamp) await window.__cloudLoadCamp(campId);
   const camp=(window._campeonatos||[]).find(c=>c.id===campId);
+  if(camp&&camp.tipo==='equipos') window._activeCampTipo='equipos';
   const pill=document.getElementById('camp-pill');
   if(pill) pill.textContent=camp?camp.nombre:campId;
   document.getElementById('camp-selector').classList.add('hidden');
@@ -737,9 +779,9 @@ function updateCampIndex() {
   if(c) { c.fechas=fechas.length; c.jugadores=jugadores.length; if(window.__cloudSaveIndex) window.__cloudSaveIndex(camps); }
 }
 
-function renderAll() { renderRanking(); renderJugadores(); renderSuplentes(); const a=document.querySelector('.section.active')?.id; if(a==='sec-fixture') renderFechas(); }
+function renderAll() { applyModeUI(); renderEquipos(); renderRanking(); renderJugadores(); renderSuplentes(); const a=document.querySelector('.section.active')?.id; if(a==='sec-fixture') renderFechas(); }
 window.renderAll = renderAll;
-function renderActive() { const a=document.querySelector('.section.active')?.id; if(a==='sec-ranking') renderRanking(); if(a==='sec-fixture'&&!window._editingSet) renderFechas(); if(a==='sec-jugadores') renderJugadores(); if(a==='sec-suplentes') renderSuplentes(); }
+function renderActive() { const a=document.querySelector('.section.active')?.id; if(a==='sec-equipos') renderEquipos(); if(a==='sec-ranking') renderRanking(); if(a==='sec-fixture'&&!window._editingSet) renderFechas(); if(a==='sec-jugadores') renderJugadores(); if(a==='sec-suplentes') renderSuplentes(); }
 window.renderActive = renderActive;
 
 // ── TABS ──────────────────────────────────────────────────────
@@ -751,6 +793,7 @@ function goTab(id,btn) {
   if(id==='fixture')   renderFechas();
   if(id==='jugadores') renderJugadores();
   if(id==='suplentes') renderSuplentes();
+  if(id==='equipos')   renderEquipos();
   const capBtn=document.getElementById('btn-captura');
   if(capBtn) capBtn.style.display=(id==='ranking'||id==='fixture')?'inline-flex':'none';
   window._activeTab=id;
@@ -846,7 +889,7 @@ function openNuevaFecha() {
   resetBuilder();
 }
 function cancelarFecha() { document.getElementById('nueva-fecha-form').style.display='none'; }
-function resetBuilder() { bSel={}; renderAllPools(); renderPreview(); }
+function resetBuilder() { bSel={}; bTeam=[['','','',''],['','','',''],['','','','']]; applyBuilderMode(); if(isTeam()){renderTeamBuilder();return;} renderAllPools(); renderPreview(); }
 function renderAllPools() { renderPool('pool-p1',0); renderPool('pool-p2',1); renderPool('pool-p3',2); }
 function getIdsForPartido(pIdx) { return Object.keys(bSel).filter(id=>bSel[id].partido===pIdx).map(Number); }
 
@@ -897,6 +940,7 @@ function guardarFecha() {
   if(!num||isNaN(num)){showAlert('alert-fecha','Ingresá el número de fecha','err');return;}
   if(!fecha){showAlert('alert-fecha','Ingresá la fecha','err');return;}
   if(fechas.find(f=>f.num===num)){showAlert('alert-fecha','Ya existe esa fecha','err');return;}
+  if(isTeam()) return guardarFechaEquipos(num,fecha);
   for(let pIdx=0;pIdx<3;pIdx++){const ids=Object.keys(bSel).filter(id=>bSel[id].partido===pIdx);if(ids.length<4){showAlert('alert-fecha','Partido '+(pIdx+1)+' incompleto','err');return;}}
   const partidos=[0,1,2].map(pIdx=>{
     const eqA=Object.keys(bSel).filter(id=>bSel[id].partido===pIdx&&bSel[id].equipo==='A').sort((a,b)=>bSel[a].pos-bSel[b].pos).map(Number);
@@ -937,6 +981,7 @@ function fechaCardHTML(f) {
       <span class="fecha-chevron">▼</span>
     </div>
     <div class="fecha-body">
+      ${isTeam()?fechaTeamBarHTML(f):''}
       <div class="partidos-grid">${f.partidos.map((p,pi)=>partidoBloqueHTML(f.id,p,pi)).join('')}</div>
       <div style="margin-top:10px;display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;">
         <button class="btn btn-primary btn-sm admin-only" onclick="marcarTodaCompletada(${f.id})">✓ Completar todos</button>
@@ -995,24 +1040,24 @@ function partidoBloqueHTML(fid,p,pi) {
   const pB1=playerNameHTML(fid,pi,p.eqB[0],2),pB2=playerNameHTML(fid,pi,p.eqB[1],3);
   return `<div class="partido-bloque">
     <div class="partido-bloque-header">
-      <span class="partido-bloque-num" style="color:${colors[pi]}">Partido ${pi+1}</span>
+      <span class="partido-bloque-num" style="color:${colors[pi]}">${isTeam()?'Cancha':'Partido'} ${pi+1}</span>
       <span class="score-chips">${setsChips}</span>
     </div>
     <div class="partido-bloque-body">
       <div class="partido-equipos">
         <div class="equipo-side">
-          <div class="equipo-lbl">Eq A ${ganador==='A'?'🏆':''}</div>
+          <div class="equipo-lbl">${isTeam()?teamName(0):'Eq A'} ${ganador==='A'?'🏆':''}</div>
           <div class="equipo-names ${ganador==='A'?'ganador':''}"><div style="margin-bottom:5px">${pA1}</div><div>${pA2}</div></div>
         </div>
         <div class="vs-pill">VS</div>
         <div class="equipo-side right">
-          <div class="equipo-lbl">${ganador==='B'?'🏆':''} Eq B</div>
+          <div class="equipo-lbl">${ganador==='B'?'🏆':''} ${isTeam()?teamName(1):'Eq B'}</div>
           <div class="equipo-names ${ganador==='B'?'ganador':''}"><div style="margin-bottom:5px">${pB1}</div><div>${pB2}</div></div>
         </div>
       </div>
       <div class="sets-result">${setsRows}</div>
       <div class="partido-actions">
-        ${!p.completado?`<button class="btn btn-ghost btn-sm admin-only" id="btn-addset-${fid}-${pi}" onclick="addSetFocus(${fid},${pi})">+ Set</button>
+        ${!p.completado?`${(isTeam()&&p.sets.length>=3)?'':`<button class="btn btn-ghost btn-sm admin-only" id="btn-addset-${fid}-${pi}" onclick="addSetFocus(${fid},${pi})">+ Set</button>`}
         <button class="btn btn-primary btn-sm admin-only" onclick="marcarPartidoCompleto(${fid},${pi})">✓ Completar</button>`
         :`<button class="btn btn-ghost btn-sm admin-only" onclick="reabrirPartido(${fid},${pi})">✎ Editar</button>`}
       </div>
@@ -1038,20 +1083,21 @@ function updateSet(fid,pi,si,campo,val) {
 function autoTab(cur,nextId){if(cur.value.length>=2){const n=document.getElementById(nextId);if(n) n.focus();}}
 function focusFirstSetInput(fid,pi){setTimeout(()=>{const inp=document.getElementById(`inp-${fid}-${pi}-0-g1`);if(inp) inp.focus();},60);}
 function addSetFocus(fid,pi){addSet(fid,pi);setTimeout(()=>{const f=fechas.find(f=>f.id===fid);if(!f)return;const si=f.partidos[pi].sets.length-1;const inp=document.getElementById(`inp-${fid}-${pi}-${si}-g1`);if(inp) inp.focus();},60);}
-function addSet(fid,pi){const f=fechas.find(f=>f.id===fid);if(!f)return;f.partidos[pi].sets.push({g1:'',g2:''});save();rerenderFecha(fid);}
+function addSet(fid,pi){const f=fechas.find(f=>f.id===fid);if(!f)return;if(isTeam()&&f.partidos[pi].sets.length>=3){alert('Máximo 3 sets por partido.');return;}f.partidos[pi].sets.push({g1:'',g2:''});save();rerenderFecha(fid);}
 function removeSet(fid,pi,si){const f=fechas.find(f=>f.id===fid);if(!f||f.partidos[pi].sets.length<=1)return;f.partidos[pi].sets.splice(si,1);save();rerenderFecha(fid);}
 
 function marcarPartidoCompleto(fid,pi){
   const f=fechas.find(f=>f.id===fid);if(!f)return;
   const sets=f.partidos[pi].sets.filter(s=>s.g1!==''&&s.g2!=='');
   if(!sets.length){alert('Cargá al menos un set.');return;}
+  if(isTeam()){const m=validarPartidoEq(sets);if(m){alert(m);return;}}
   f.partidos[pi].sets=sets;f.partidos[pi].completado=true;save();rerenderFecha(fid);
 }
 function reabrirPartido(fid,pi){const f=fechas.find(f=>f.id===fid);if(!f)return;f.partidos[pi].completado=false;save();rerenderFecha(fid);}
 function marcarTodaCompletada(fid){
   const f=fechas.find(f=>f.id===fid);if(!f)return;
   let ok=true;
-  f.partidos.forEach((p,pi)=>{if(!p.completado){const sets=p.sets.filter(s=>s.g1!==''&&s.g2!=='');if(!sets.length){ok=false;alert('Partido '+(pi+1)+': cargá al menos un set.');return;}p.sets=sets;p.completado=true;}});
+  f.partidos.forEach((p,pi)=>{if(!p.completado){const sets=p.sets.filter(s=>s.g1!==''&&s.g2!=='');if(!sets.length){ok=false;alert('Partido '+(pi+1)+': cargá al menos un set.');return;}if(isTeam()){const m=validarPartidoEq(sets);if(m){ok=false;alert('Cancha '+(pi+1)+': '+m);return;}}p.sets=sets;p.completado=true;}});
   if(ok){save();rerenderFecha(fid);}
 }
 function eliminarFecha(fid){if(!confirm('¿Eliminar esta fecha?'))return;fechas=fechas.filter(f=>f.id!==fid);save();updateCampIndex();renderFechas();}
@@ -1076,10 +1122,142 @@ function aplicarReemplazo(fid,pi,slot){
 }
 function quitarReemplazo(fid,pi,slot){const f=fechas.find(f=>f.id===fid);if(!f)return;const p=f.partidos[pi];if(p.reemplazos) delete p.reemplazos[String(slot)];save();rerenderFecha(fid);}
 
+// ── MODO EQUIPOS (Relámpago) ──────────────────────────────────
+let bTeam=[['','','',''],['','','',''],['','','','']];
+function teamName(i){return (equipos&&equipos[i]&&equipos[i].nombre)||('Equipo '+'AB'[i]);}
+function teamIds(i){return ((equipos&&equipos[i]&&equipos[i].ids)||[]).filter(id=>jugadores.some(j=>j.id===id));}
+function jName(id){return jugadores.find(j=>j.id===Number(id))?.nombre||'?';}
+function pairKey(a,b){return [Number(a),Number(b)].sort((x,y)=>x-y).join('-');}
+function usedPairs(side){const m={};fechas.forEach(f=>f.partidos.forEach(p=>{const pr=side===0?p.eqA:p.eqB;if(pr&&pr.length===2) m[pairKey(pr[0],pr[1])]=f.num;}));return m;}
+
+function applyModeUI(){
+  const t=isTeam();
+  const tb=document.getElementById('tab-equipos'); if(tb) tb.style.display=t?'':'none';
+  if(!t&&document.getElementById('sec-equipos')?.classList.contains('active')){const first=document.querySelector('.tab-btn');if(first) goTab('ranking',first);}
+  applyBuilderMode();
+}
+function applyBuilderMode(){
+  const t=isTeam();
+  const a=document.getElementById('std-builder'),b=document.getElementById('team-builder');
+  if(a) a.style.display=t?'none':''; if(b) b.style.display=t?'block':'none';
+}
+
+function ensureEquipos(){ if(!equipos) equipos=defaultEquipos(); }
+function setEquipo(jid,ti){
+  ensureEquipos();
+  if(ti>=0&&teamIds(ti).length>=6&&!equipos[ti].ids.includes(jid)){alert('El equipo ya tiene 6 jugadores.');return;}
+  equipos.forEach(e=>{e.ids=e.ids.filter(x=>x!==jid);if(e.capitan===jid) e.capitan=null;});
+  if(ti>=0) equipos[ti].ids.push(jid);
+  save(); renderEquipos();
+}
+function setCapitan(ti,jid){ensureEquipos();equipos[ti].capitan=equipos[ti].capitan===jid?null:jid;save();renderEquipos();}
+function renombrarEquipo(ti){ensureEquipos();const n=prompt('Nombre del equipo:',teamName(ti));if(n&&n.trim()){equipos[ti].nombre=n.trim();save();renderEquipos();}}
+
+function renderEquipos(){
+  const el=document.getElementById('equipos-body'); if(!el||!isTeam()) return;
+  ensureEquipos();
+  const asignados=new Set(equipos.flatMap(e=>e.ids));
+  const card=ti=>{
+    const ids=teamIds(ti);
+    return `<div class="team-card"><h3>${ti===0?'🟣':'🔵'} ${teamName(ti)} <span style="font-size:.9rem;color:var(--text3);font-family:Inter,sans-serif">${ids.length}/6</span><button class="team-mini admin-only" onclick="renombrarEquipo(${ti})">✎ Nombre</button></h3>
+      ${ids.length?ids.map(id=>`<div class="team-row"><span class="grow">${equipos[ti].capitan===id?'⭐ ':''}${jName(id)}${equipos[ti].capitan===id?' <small style="color:var(--gold)">Capitán</small>':''}</span>
+        <button class="team-mini admin-only" onclick="setCapitan(${ti},${id})">⭐</button>
+        <button class="team-mini admin-only" onclick="setEquipo(${id},-1)">✕</button></div>`).join(''):'<div style="color:var(--text3);font-size:.82rem">Sin jugadores</div>'}
+    </div>`;
+  };
+  const libres=jugadores.filter(j=>!asignados.has(j.id));
+  el.innerHTML=card(0)+card(1)+`<div class="team-card"><h3>Sin equipo <span style="font-size:.9rem;color:var(--text3);font-family:Inter,sans-serif">${libres.length}</span></h3>
+    ${libres.length?libres.map(j=>`<div class="team-row"><span class="grow">${j.nombre}</span>
+      <button class="team-mini admin-only" onclick="setEquipo(${j.id},0)">→ ${teamName(0)}</button>
+      <button class="team-mini admin-only" onclick="setEquipo(${j.id},1)">→ ${teamName(1)}</button></div>`).join(''):'<div style="color:var(--text3);font-size:.82rem">Todos asignados ✓</div>'}</div>`;
+}
+
+function setTeamSel(c,slot,val){bTeam[c][slot]=val;renderTeamBuilder();}
+function renderTeamBuilder(){
+  const el=document.getElementById('team-builder'); if(!el) return;
+  if(teamIds(0).length!==6||teamIds(1).length!==6){el.innerHTML='<p style="color:var(--gold);font-size:.84rem;">Primero armá los equipos (6 y 6) en la pestaña ⚡ Equipos.</p>';return;}
+  const up=[usedPairs(0),usedPairs(1)];
+  const opts=(c,slot)=>{
+    const ti=slot<2?0:1,cur=String(bTeam[c][slot]);
+    const taken=new Set();
+    bTeam.forEach((row,rc)=>{(ti===0?[0,1]:[2,3]).forEach(sl=>{if(!(rc===c&&sl===slot)&&row[sl]) taken.add(String(row[sl]));});});
+    return '<option value="">—</option>'+teamIds(ti).map(id=>`<option value="${id}" ${String(id)===cur?'selected':''} ${taken.has(String(id))?'disabled':''}>${jName(id)}</option>`).join('');
+  };
+  el.innerHTML=`<p style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Elegí las 3 parejas de cada equipo. Ningún jugador repite en la fecha y ninguna pareja puede repetirse en el torneo.</p>`+[0,1,2].map(c=>{
+    const r=bTeam[c],warns=[];
+    if(r[0]&&r[1]&&up[0][pairKey(r[0],r[1])]) warns.push(`⚠ ${jName(r[0])}/${jName(r[1])} ya jugaron juntos en la fecha ${up[0][pairKey(r[0],r[1])]}`);
+    if(r[2]&&r[3]&&up[1][pairKey(r[2],r[3])]) warns.push(`⚠ ${jName(r[2])}/${jName(r[3])} ya jugaron juntos en la fecha ${up[1][pairKey(r[2],r[3])]}`);
+    const sel=(slot)=>`<select onchange="setTeamSel(${c},${slot},this.value)">${opts(c,slot)}</select>`;
+    return `<div class="tb-cancha"><div style="font-weight:800;margin-bottom:6px;">Cancha ${c+1}</div>
+      <div class="tb-row"><div><small style="color:var(--text3)">${teamName(0)}</small>${sel(0)}${sel(1)}</div><div class="vs-pill">VS</div><div><small style="color:var(--text3)">${teamName(1)}</small>${sel(2)}${sel(3)}</div></div>
+      ${warns.map(w=>`<div class="tb-warn">${w}</div>`).join('')}</div>`;
+  }).join('');
+}
+
+function guardarFechaEquipos(num,fecha){
+  if(fechas.length>=5){showAlert('alert-fecha','El torneo tiene 5 fechas como máximo','err');return;}
+  if(teamIds(0).length!==6||teamIds(1).length!==6){showAlert('alert-fecha','Los equipos deben tener 6 jugadores cada uno','err');return;}
+  for(let c=0;c<3;c++) if(bTeam[c].some(v=>!v)){showAlert('alert-fecha','Cancha '+(c+1)+' incompleta','err');return;}
+  const up=[usedPairs(0),usedPairs(1)];
+  for(let c=0;c<3;c++){
+    const r=bTeam[c];
+    if(up[0][pairKey(r[0],r[1])]){showAlert('alert-fecha',`Cancha ${c+1}: ${jName(r[0])}/${jName(r[1])} ya jugaron juntos (fecha ${up[0][pairKey(r[0],r[1])]})`,'err');return;}
+    if(up[1][pairKey(r[2],r[3])]){showAlert('alert-fecha',`Cancha ${c+1}: ${jName(r[2])}/${jName(r[3])} ya jugaron juntos (fecha ${up[1][pairKey(r[2],r[3])]})`,'err');return;}
+  }
+  const partidos=bTeam.map(r=>({eqA:[Number(r[0]),Number(r[1])],eqB:[Number(r[2]),Number(r[3])],sets:[{g1:'',g2:''}],completado:false}));
+  fechas.push({id:Date.now(),num,fecha,partidos});
+  fechas.sort((a,b)=>a.num-b.num);
+  save(); updateCampIndex(); resetBuilder();
+  document.getElementById('nueva-fecha-form').style.display='none';
+  renderFechas();
+}
+
+function validarPartidoEq(sets){
+  let sA=0,sB=0;
+  for(const s of sets){const a=parseInt(s.g1),b=parseInt(s.g2);if(a===b) return 'Un set no puede quedar empatado (se define con tie-break normal).';if(a>b)sA++;else sB++;}
+  if(sets.length>3) return 'Máximo 3 sets.';
+  if(sA<2&&sB<2) return 'Falta definir el ganador (mejor de 3 sets).';
+  return null;
+}
+function resPartido(p){let sA=0,sB=0,gA=0,gB=0;p.sets.forEach(s=>{if(s.g1===''||s.g2==='') return;const a=parseInt(s.g1)||0,b=parseInt(s.g2)||0;if(a>b)sA++;else if(b>a)sB++;gA+=a;gB+=b;});return {sA,sB,gA,gB};}
+function teamTotals(fs){
+  const st=[0,1].map(i=>({i,nombre:teamName(i),pj:0,pg:0,pp:0,sg:0,sp:0,gg:0,gp:0,pts:0}));
+  fs.forEach(f=>f.partidos.filter(p=>p.completado).forEach(p=>{
+    const r=resPartido(p);
+    [[0,r.sA,r.sB,r.gA,r.gB],[1,r.sB,r.sA,r.gB,r.gA]].forEach(([i,sg,sp,gg,gp])=>{const t=st[i];t.pj++;t.sg+=sg;t.sp+=sp;t.gg+=gg;t.gp+=gp;if(sg>sp)t.pg++;else t.pp++;});
+  }));
+  st.forEach(t=>t.pts=t.pg*10+t.sg*4+t.gg);
+  return st;
+}
+function calcStatsEquipos(){
+  return teamTotals(fechas).sort((a,b)=>b.pts-a.pts||b.pg-a.pg||(b.sg-b.sp)-(a.sg-a.sp)||(b.gg-b.gp)-(a.gg-a.gp));
+}
+function fechaTeamBarHTML(f){
+  const t=teamTotals([f]);
+  return `<div class="fecha-teambar"><span>${teamName(0)}: ${t[0].pts} pts</span><span style="color:var(--text3)">en esta fecha</span><span>${teamName(1)}: ${t[1].pts} pts</span></div>`;
+}
+function renderTeamRanking(){
+  const el=document.getElementById('team-ranking'); if(!el) return;
+  if(!isTeam()){el.style.display='none';el.innerHTML='';return;}
+  el.style.display='block';
+  const t=calcStatsEquipos();
+  const jugados=t[0].pj;
+  const hayLider=t[0].pj>0&&(t[0].pts!==t[1].pts||t[0].pg!==t[1].pg||(t[0].sg-t[0].sp)!==(t[1].sg-t[1].sp)||(t[0].gg-t[0].gp)!==(t[1].gg-t[1].gp));
+  const cap=i=>{const c=equipos&&equipos[i]&&equipos[i].capitan;return c?'⭐ '+jName(c):'';};
+  const box=(x,k)=>`<div class="team-box ${hayLider&&k===0?'lead':''}"><div class="tn">${x.nombre}</div><div class="tp">${x.pts}</div><div style="font-size:.7rem;color:var(--text3)">${cap(x.i)}</div></div>`;
+  const d=v=>(v>0?'+':'')+v;
+  el.innerHTML=`<div class="team-banner">${box(t[0],0)}<div class="vs-pill">VS</div>${box(t[1],1)}</div>
+  <div class="card" style="margin-bottom:16px;"><div class="ranking-wrap"><table class="ranking-table"><thead><tr><th>Equipo</th><th class="c">Pts</th><th class="c">PG</th><th class="c">SG</th><th class="c">Dif S</th><th class="c">GG</th><th class="c">Dif G</th></tr></thead><tbody>
+  ${t.map(x=>`<tr><td><span class="player-name">${x.nombre}</span></td><td class="c"><span class="pts-big">${x.pts}</span></td><td class="c">${x.pg}</td><td class="c">${x.sg}</td><td class="c">${d(x.sg-x.sp)}</td><td class="c">${x.gg}</td><td class="c">${d(x.gg-x.gp)}</td></tr>`).join('')}
+  </tbody></table></div><p style="margin:8px 4px 0;font-size:.66rem;color:var(--text3);">Partidos jugados: ${jugados} de 15 · Desempate: partidos ganados → dif. de sets → dif. de games</p></div>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:3px;margin:6px 0 10px;">Ranking individual</div>`;
+}
+
 // ── RANKING ───────────────────────────────────────────────────
 const ATTRS=['Saque','Derecha','Revés','Volea','Bandeja','Smash','Potencia','Velocidad','Técnica','Consistencia','Red','Fondo'];
 
 function calcPts(pg, sg, gg) {
+  if (window._activeCampTipo==='equipos') { return pg*10 + sg*4 + gg; }
   const OLD_SCORING = ['camp_apertura_2026'];
   if (OLD_SCORING.includes(window._activeCampId)) {
     return pg * 3 + sg * 2;
@@ -1137,11 +1315,12 @@ function avatarHTML(j,size,pos){
 }
 
 function renderRanking() {
+  renderTeamRanking();
   const fechasComp=fechas.filter(f=>f.partidos.every(p=>p.completado)&&f.partidos.length===3).length;
   const OLD_SCORING=['camp_apertura_2026'];
   const isOld=OLD_SCORING.includes(window._activeCampId);
   const subEl=document.getElementById('ranking-sub');
-  if(subEl) subEl.textContent=isOld
+  if(subEl) subEl.textContent=isTeam()?'Desafío de Capitanes · +10 partido ganado · +4 set ganado · +1 game ganado':isOld
     ?'Ranking · 3pts partido ganado · 2pts por set ganado'
     :'Ranking · 1pt partido ganado · 2pts por set · games/10';
   document.getElementById('stats-row').innerHTML=`
@@ -1173,7 +1352,7 @@ function renderRanking() {
       ${tableHTML(statsSup,false,s=>'openSupModalById(\''+s.id+'\',\''+encodeURIComponent(s.nombre)+'\')')}
     </div>`:'';
   el.innerHTML=tableHTML(stats,true,s=>'openPlayerModal('+s.id+')')+
-    `<p style="margin-top:10px;font-size:.66rem;color:var(--text3);text-align:right;">👆 Tocá un jugador · '+(isOld?'PG+3pts · SG+2pts':'PG+1pt · SG+2pts · Games/10')+'</p>`+supSection;
+    `<p style="margin-top:10px;font-size:.66rem;color:var(--text3);text-align:right;">👆 Tocá un jugador · ${isTeam()?'PG+10 · SG+4 · Game+1':(isOld?'PG+3pts · SG+2pts':'PG+1pt · SG+2pts · Games/10')}</p>`+supSection;
 }
 
 // ── COMPACT FIXTURE ───────────────────────────────────────────
@@ -1449,6 +1628,7 @@ window.setFixtureView=setFixtureView;window.renderCompactFixture=renderCompactFi
 window.toggleReemplazo=toggleReemplazo;window.aplicarReemplazo=aplicarReemplazo;window.quitarReemplazo=quitarReemplazo;
 window.openEditModal=openEditModal;window.editPreviewFoto=editPreviewFoto;window.guardarEdicion=guardarEdicion;window.closeEditModal=closeEditModal;
 window.renderCampSelectorExt=renderCampSelector;
+window.setEquipo=setEquipo;window.setCapitan=setCapitan;window.renombrarEquipo=renombrarEquipo;window.setTeamSel=setTeamSel;
 
 // ── INIT ──────────────────────────────────────────────────────
 checkAdminURL();

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><title>ATR — Cargar equipos Relámpago</title>
+<style>
+body{background:#0a0014;color:#f0eaf8;font-family:monospace;padding:24px;}
+h2{color:#b8ff00;margin-bottom:12px;}
+button{background:#9b4dff;color:#fff;border:none;padding:12px 26px;border-radius:10px;font-size:1rem;cursor:pointer;margin:8px 4px;}
+#log{background:#110022;border:1px solid #3a0066;border-radius:10px;padding:16px;margin-top:16px;white-space:pre-wrap;font-size:.85rem;line-height:1.8;}
+.ok{color:#b8ff00;}.err{color:#ff4466;}.info{color:#c084ff;}.warn{color:#ffd700;}
+</style></head><body>
+<h2>ATR — Cargar equipos en Relámpago 2026</h2>
+<p style="color:#9b80c0;font-size:.85rem">Antes creá "Relámpago 2026" desde la app. Este script solo completa los equipos.</p>
+<button onclick="cargar()">⚡ CARGAR EQUIPOS</button>
+<div id="log">Listo...</div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+const app=initializeApp({apiKey:"AIzaSyD5vvspu8R0i-HATfUxyIrlqFV0LHhb4hU",authDomain:"atr-padel-tour.firebaseapp.com",projectId:"atr-padel-tour",storageBucket:"atr-padel-tour.firebasestorage.app",messagingSenderId:"620692629173",appId:"1:620692629173:web:ea1af594969b2d439ac0fc"});
+const db=getFirestore(app);
+const log=(m,c='')=>{document.getElementById('log').innerHTML+=`<span class="${c}">${m}</span>\n`;};
+
+// ── CONFIGURAR ──
+const CAMP_ID='camp_relampago_2026';
+const EQUIPOS=[
+  {nombre:'Equipo 1',capitan:null,jugadores:['Ángel','Diego L','Hernán','Ariel','Javier','Matías']},
+  {nombre:'Equipo 2',capitan:null,jugadores:['Diego P','Martín','Agustín','Tapia','Fabi','Román']},
+];
+// capitan: poné el nombre de uno de la lista (ej. 'Hernán') o dejá null
+
+const norm=s=>(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+function buscar(nombre,lista){
+  const n=norm(nombre);
+  let r=lista.filter(x=>norm(x.nombre)===n);
+  if(r.length===1) return r[0];
+  if(r.length>1) return 'AMBIGUO';
+  r=lista.filter(x=>norm(x.nombre).startsWith(n));
+  if(r.length===1) return r[0];
+  if(r.length>1) return 'AMBIGUO';
+  return null;
+}
+
+window.cargar=async function(){
+  document.getElementById('log').innerHTML='';
+  const ref=doc(db,'tournaments',CAMP_ID);
+  const snap=await getDoc(ref);
+  if(!snap.exists()){log('ERROR: no existe '+CAMP_ID+'. Creá "Relámpago 2026" desde la app primero.','err');return;}
+  const data=snap.data();
+  let jugadores=[...(data.jugadores||[])],suplentes=[...(data.suplentes||[])];
+  log(`✓ Relámpago encontrado: ${jugadores.length} jugadores, ${suplentes.length} suplentes`,'ok');
+  const usados=new Set(),problemas=[];
+  const equipos=EQUIPOS.map(eq=>{
+    const ids=[];
+    eq.jugadores.forEach(nom=>{
+      let j=buscar(nom,jugadores);
+      if(!j){
+        const s=buscar(nom,suplentes);
+        if(s&&s!=='AMBIGUO'){suplentes=suplentes.filter(x=>x.id!==s.id);jugadores.push(s);j=s;log(`↑ ${nom}: estaba en suplentes → pasa a titulares (${s.nombre})`,'warn');}
+      }
+      if(!j||j==='AMBIGUO'){problemas.push(nom);log(`✗ ${nom}: ${j==='AMBIGUO'?'nombre ambiguo':'no encontrado'}`,'err');return;}
+      if(usados.has(j.id)){problemas.push(nom);log(`✗ ${nom}: ya está en otro equipo`,'err');return;}
+      usados.add(j.id);ids.push(j.id);log(`✓ ${eq.nombre}: ${nom} → ${j.nombre}`,'ok');
+    });
+    let cap=null;
+    if(eq.capitan){const c=buscar(eq.capitan,jugadores);if(c&&c!=='AMBIGUO'&&ids.includes(c.id)) cap=c.id;else log('⚠ Capitán no válido: '+eq.capitan,'warn');}
+    return {nombre:eq.nombre,capitan:cap,ids};
+  });
+  if(problemas.length){log('\nNo se guardó nada. Corregí los nombres de arriba y reintentá.','err');return;}
+  await updateDoc(ref,{jugadores,suplentes,equipos,tipo:'equipos'});
+  log('\n🎉 LISTO! Equipos cargados. Abrí la app → Relámpago 2026 → pestaña ⚡ Equipos.','ok');
+};
+</script></body></html>

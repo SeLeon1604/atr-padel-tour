@@ -1,5 +1,5 @@
-// ATR Padel Tour — Service Worker v22
-const CACHE_NAME = 'atr-padel-v32';
+// ATR Padel Tour — Service Worker v33
+const CACHE_NAME = 'atr-padel-v33';
 const BASE = '/atr-padel-tour';
 const ASSETS = [
   BASE + '/index.html',
